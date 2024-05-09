@@ -11,6 +11,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { BookService } from 'src/modules/book/book.service';
 import { MemberService } from 'src/modules/member/member.service';
 import { MemberStatus } from 'src/types';
+import dataSource from 'src/data-source/data-source';
+import { Book } from 'src/modules/book/entities/book.entity';
 
 @Injectable()
 export class BorrowingService {
@@ -39,66 +41,87 @@ export class BorrowingService {
   }
 
   async createBorrowBook(createBorrowingDto: CreateBorrowingDto) {
-    // Should do transaction
+    return dataSource.manager.transaction(async (entityManager) => {
+      const trxBorrowingRepository = entityManager.getRepository(Borrowing);
+      const trxBookRepository = entityManager.getRepository(Book);
 
-    const member = await this.memberService.findOne(createBorrowingDto.member);
-    if (member.status !== MemberStatus.CLEAR)
-      throw new ConflictException('Member Penalty');
+      const member = await this.memberService.findOne(
+        createBorrowingDto.member,
+      );
+      if (member.status !== MemberStatus.CLEAR)
+        throw new ConflictException('Member Penalty');
 
-    const checkMemberBorrowBook = await this.checkMemberBorrowingBook(
-      createBorrowingDto.member,
-    );
+      const checkMemberBorrowBook = await this.checkMemberBorrowingBook(
+        createBorrowingDto.member,
+      );
 
-    if (checkMemberBorrowBook.length >= 2)
-      throw new ConflictException('Maximal booking');
+      if (checkMemberBorrowBook.length >= 2)
+        throw new ConflictException('Maximal booking');
 
-    await this.bookService.checkAvailabilityBook(createBorrowingDto.book);
+      await this.bookService.checkAvailabilityBook(createBorrowingDto.book);
 
-    const memberBorrowBook = await this.borrowingRepository.save(
-      this.borrowingRepository.create({
-        ...createBorrowingDto,
-        borrow_date: new Date(),
-      }),
-    );
+      const memberBorrowBook = await trxBorrowingRepository.save(
+        trxBorrowingRepository.create({
+          ...createBorrowingDto,
+          borrow_date: new Date(),
+        }),
+      );
 
-    await this.bookService.update(createBorrowingDto.book, { stock: 0 });
+      await trxBookRepository.save(
+        trxBookRepository.create({
+          id: createBorrowingDto.book,
+          stock: 0,
+        }),
+      );
 
-    return memberBorrowBook;
+      return memberBorrowBook;
+    });
   }
 
   async returnBorrowedBook(returnBorrowdBookDto: ReturnBorrowedBookDto) {
     // Should do transaction
-    const borrowing = await this.borrowingRepository
-      .findOneOrFail({
-        where: {
-          member: {
-            id: returnBorrowdBookDto.member,
+
+    return dataSource.manager.transaction(async (entityManager) => {
+      const trxBorrowingRepository = entityManager.getRepository(Borrowing);
+      const trxBookRepository = entityManager.getRepository(Book);
+
+      const borrowing = await trxBorrowingRepository
+        .findOneOrFail({
+          where: {
+            member: {
+              id: returnBorrowdBookDto.member,
+            },
+            book: {
+              id: returnBorrowdBookDto.book,
+            },
+            original_return_date: IsNull(),
           },
-          book: {
-            id: returnBorrowdBookDto.book,
-          },
-          original_return_date: IsNull(),
-        },
-      })
-      .catch(() => {
-        throw new NotFoundException('Data not found');
-      });
+        })
+        .catch(() => {
+          throw new NotFoundException('Data not found');
+        });
 
-    if (borrowing.return_date < new Date()) {
-      await this.memberService.update(returnBorrowdBookDto.member, {
-        status: MemberStatus.PENALTY,
-      });
-    }
+      if (borrowing.return_date < new Date()) {
+        await this.memberService.update(returnBorrowdBookDto.member, {
+          status: MemberStatus.PENALTY,
+        });
+      }
 
-    await this.bookService.update(returnBorrowdBookDto.book, { stock: 1 });
+      await trxBookRepository.save(
+        trxBookRepository.create({
+          id: returnBorrowdBookDto.book,
+          stock: 1,
+        }),
+      );
 
-    const newBookingData = await this.borrowingRepository.save(
-      this.borrowingRepository.create({
-        ...borrowing,
-        original_return_date: new Date(),
-      }),
-    );
+      const newBookingData = await trxBorrowingRepository.save(
+        trxBorrowingRepository.create({
+          ...borrowing,
+          original_return_date: new Date(),
+        }),
+      );
 
-    return newBookingData;
+      return newBookingData;
+    });
   }
 }
