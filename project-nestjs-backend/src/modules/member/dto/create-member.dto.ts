@@ -1,5 +1,5 @@
-import { IsEnum, IsString } from 'class-validator';
-import { MemberStatus } from 'src/types';
+import { Type } from 'class-transformer';
+import { IsDate, IsString } from 'class-validator';
 
 export class CreateMemberDto {
   @IsString()
@@ -8,6 +8,7 @@ export class CreateMemberDto {
   @IsString()
   name: string;
 
-  @IsEnum(MemberStatus)
-  status: MemberStatus;
+  @IsDate()
+  @Type(() => Date)
+  penaltyUntil: Date;
 }

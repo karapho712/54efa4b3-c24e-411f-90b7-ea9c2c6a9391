@@ -1,5 +1,4 @@
 import { Borrowing } from 'src/modules/borrowing/entities/borrowing.entity';
-import { MemberStatus } from 'src/types';
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity({ name: 'members' })
@@ -16,6 +15,6 @@ export class Member {
   @OneToMany(() => Borrowing, (borrowing) => borrowing.member)
   memberBooks: Borrowing[];
 
-  @Column({ enum: MemberStatus, default: MemberStatus.CLEAR })
-  status: MemberStatus;
+  @Column({ type: 'date', nullable: true, default: null })
+  penaltyUntil: Date | null;
 }

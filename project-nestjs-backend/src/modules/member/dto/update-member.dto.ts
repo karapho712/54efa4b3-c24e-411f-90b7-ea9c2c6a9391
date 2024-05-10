@@ -1,7 +1,6 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateMemberDto } from './create-member.dto';
 import { IsOptional } from 'class-validator';
-import { MemberStatus } from 'src/types';
 
 export class UpdateMemberDto extends PartialType(CreateMemberDto) {
   @IsOptional()
@@ -11,5 +10,5 @@ export class UpdateMemberDto extends PartialType(CreateMemberDto) {
   name?: string;
 
   @IsOptional()
-  status?: MemberStatus;
+  penaltyUntil?: Date;
 }

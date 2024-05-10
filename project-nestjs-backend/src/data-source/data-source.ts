@@ -1,5 +1,8 @@
 import { DataSource, DataSourceOptions } from 'typeorm';
 
+export const safeInit = (dataSource: DataSource) =>
+  !dataSource.isInitialized ? dataSource.initialize() : dataSource;
+
 export const dataSourceOptions: DataSourceOptions = {
   type: 'sqlite',
   database: 'db/sql.db',

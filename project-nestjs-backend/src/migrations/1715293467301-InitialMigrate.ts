@@ -1,11 +1,11 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class InitialMigrations1715173348061 implements MigrationInterface {
-    name = 'InitialMigrations1715173348061'
+export class InitialMigrate1715293467301 implements MigrationInterface {
+    name = 'InitialMigrate1715293467301'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE "books" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "code" varchar NOT NULL, "title" varchar NOT NULL, "author" varchar NOT NULL, "stock" numeric NOT NULL DEFAULT (1))`);
-        await queryRunner.query(`CREATE TABLE "members" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "code" varchar NOT NULL, "name" varchar NOT NULL, "status" varchar CHECK( "status" IN ('CLEAR','PENALTY') ) NOT NULL DEFAULT ('CLEAR'), CONSTRAINT "UQ_8b08a36b59b238402b8c38d1f6f" UNIQUE ("code"))`);
+        await queryRunner.query(`CREATE TABLE "members" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "code" varchar NOT NULL, "name" varchar NOT NULL, "penaltyUntil" date, CONSTRAINT "UQ_8b08a36b59b238402b8c38d1f6f" UNIQUE ("code"))`);
         await queryRunner.query(`CREATE TABLE "borrowings" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "borrow_date" date NOT NULL, "return_date" date NOT NULL, "original_return_date" date, "memberId" integer, "bookId" integer)`);
         await queryRunner.query(`CREATE INDEX "IDX_98ce86180d96a4473a57f7f061" ON "borrowings" ("memberId") `);
         await queryRunner.query(`CREATE INDEX "IDX_5da2b7ee3b60c381d4bbdb5066" ON "borrowings" ("bookId") `);

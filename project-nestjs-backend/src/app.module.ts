@@ -2,14 +2,19 @@ import { Module } from '@nestjs/common';
 import { MemberModule } from './modules/member/member.module';
 import { BookModule } from './modules/book/book.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { dataSourceOptions } from './data-source/data-source';
 import { BorrowingModule } from './modules/borrowing/borrowing.module';
+import { default as newDataSource, safeInit } from './data-source/data-source';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      ...dataSourceOptions,
-      autoLoadEntities: true,
+    TypeOrmModule.forRootAsync({
+      dataSourceFactory: async () => {
+        const dataSource = safeInit(newDataSource);
+        return dataSource;
+      },
+      useFactory: () => ({
+        autoLoadEntities: true,
+      }),
     }),
     MemberModule,
     BookModule,

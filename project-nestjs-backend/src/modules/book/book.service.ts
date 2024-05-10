@@ -26,7 +26,7 @@ export class BookService {
     return checkBook;
   }
 
-  findAll() {
+  async findAll() {
     return this.bookRepository.find({
       where: {
         stock: 1,

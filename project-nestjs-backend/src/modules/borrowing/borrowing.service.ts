@@ -10,9 +10,9 @@ import { IsNull, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BookService } from 'src/modules/book/book.service';
 import { MemberService } from 'src/modules/member/member.service';
-import { MemberStatus } from 'src/types';
 import dataSource from 'src/data-source/data-source';
 import { Book } from 'src/modules/book/entities/book.entity';
+import { addDays } from 'date-fns';
 
 @Injectable()
 export class BorrowingService {
@@ -48,7 +48,11 @@ export class BorrowingService {
       const member = await this.memberService.findOne(
         createBorrowingDto.member,
       );
-      if (member.status !== MemberStatus.CLEAR)
+
+      if (
+        member.penaltyUntil !== null &&
+        new Date(member.penaltyUntil) > new Date()
+      )
         throw new ConflictException('Member Penalty');
 
       const checkMemberBorrowBook = await this.checkMemberBorrowingBook(
@@ -79,8 +83,6 @@ export class BorrowingService {
   }
 
   async returnBorrowedBook(returnBorrowdBookDto: ReturnBorrowedBookDto) {
-    // Should do transaction
-
     return dataSource.manager.transaction(async (entityManager) => {
       const trxBorrowingRepository = entityManager.getRepository(Borrowing);
       const trxBookRepository = entityManager.getRepository(Book);
@@ -103,7 +105,7 @@ export class BorrowingService {
 
       if (borrowing.return_date < new Date()) {
         await this.memberService.update(returnBorrowdBookDto.member, {
-          status: MemberStatus.PENALTY,
+          penaltyUntil: addDays(new Date(), 3),
         });
       }
 
